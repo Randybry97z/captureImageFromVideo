@@ -16,11 +16,31 @@ sudo apt-get install -y \
     ffmpeg \
     python3 \
     python3-pip \
+    python3-venv \
+    pipx \
     git
 
-# Install yt-dlp using pip3
-echo "📥 Installing yt-dlp (Python package)..."
-sudo pip3 install --no-cache-dir yt-dlp
+# Install yt-dlp using pipx (recommended for CLI tools in externally-managed environments)
+echo "📥 Installing yt-dlp using pipx (recommended method)..."
+if command -v pipx &> /dev/null; then
+    # Use pipx to install yt-dlp (manages its own virtual environment)
+    pipx ensurepath
+    pipx install yt-dlp
+    echo "✓ yt-dlp installed via pipx"
+else
+    echo "⚠ pipx not available, trying alternative methods..."
+    
+    # Alternative: Try to install yt-dlp via apt (if available)
+    if apt-cache show yt-dlp &> /dev/null; then
+        echo "📥 Installing yt-dlp via apt..."
+        sudo apt-get install -y yt-dlp
+    else
+        # Last resort: Use pip with --break-system-packages (not recommended but may be necessary)
+        echo "⚠ Installing yt-dlp via pip with --break-system-packages flag..."
+        echo "   (This is not recommended but may be necessary for your system)"
+        sudo pip3 install --break-system-packages --no-cache-dir yt-dlp
+    fi
+fi
 
 # Verify installations
 echo ""
@@ -52,9 +72,11 @@ else
 fi
 
 if command -v yt-dlp &> /dev/null; then
-    echo "✓ yt-dlp: $(yt-dlp --version)"
+    YTDLP_VERSION=$(yt-dlp --version 2>/dev/null || echo "installed")
+    echo "✓ yt-dlp: $YTDLP_VERSION"
 else
     echo "✗ yt-dlp: Not found"
+    echo "   You may need to reload your shell or run: source ~/.bashrc"
 fi
 
 echo ""
