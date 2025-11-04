@@ -1,0 +1,5 @@
+# This file ensures the public folder is tracked in git
+# The public folder contains static assets that are served directly by Next.js
+# Files in this folder are accessible at the root URL path
+# Example: public/favicon.ico is accessible at /favicon.ico
+

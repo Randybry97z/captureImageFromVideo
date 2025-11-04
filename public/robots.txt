@@ -1,0 +1,10 @@
+# robots.txt for Video Image Capture
+User-agent: *
+Allow: /
+
+# Disallow API routes from crawling
+Disallow: /api/
+
+# Sitemap (if you have one)
+# Sitemap: https://yourdomain.com/sitemap.xml
+
