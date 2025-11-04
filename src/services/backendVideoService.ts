@@ -1,4 +1,5 @@
-import { CaptureSettings, CapturedImage } from '../types/video;
+import { CaptureSettings, CapturedImage } from '../types/video';
+
 interface BackendProcessRequest {
   url: string;
   interval: number;
@@ -13,11 +14,18 @@ interface BackendProcessResponse {
   message?: string;
 }
 
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 export async function processVideoWithBackend(
   url: string,
   settings: CaptureSettings,
   onProgress?: (progress: number) => void
-): Promise<CapturedImage[]>[object Object] const requestData: BackendProcessRequest = {
+): Promise<CapturedImage[]> {
+  const requestData: BackendProcessRequest = {
     url,
     interval: settings.intervalType === 'minutes' ? settings.interval * 60 : settings.interval,
     startTime: settings.startTime,
@@ -26,29 +34,33 @@ export async function processVideoWithBackend(
 
   try {
     // Simulate progress for better UX
-    if (onProgress) [object Object]
+    if (onProgress) {
       onProgress(10); // Starting
-      setTimeout(() => onProgress(30), 1000); // Downloading
-      setTimeout(() => onProgress(60), 2000/ Processing
-      setTimeout(() => onProgress(90), 3000 // Finalizing
+      setTimeout(() => onProgress!(30), 1000); // Downloading
+      setTimeout(() => onProgress!(60), 2000); // Processing
+      setTimeout(() => onProgress!(90), 3000); // Finalizing
     }
 
-    const response = await fetch('/api/process-video,[object Object]     method: 'POST',
-      headers: [object Object]    Content-Type':application/json',
+    const response = await fetch('/api/process-video', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestData),
     });
 
     const data: BackendProcessResponse = await response.json();
 
-    if (!response.ok)[object Object]   throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    if (!data.success || !data.images)[object Object]   throw new Error(data.error || 'Backend processing failed');
+    if (!data.success || !data.images) {
+      throw new Error(data.error || 'Backend processing failed');
     }
 
     // Convert base64 images to CapturedImage format
-    const images: CapturedImage[] = data.images.map((base64mage, index) => {
+    const images: CapturedImage[] = data.images.map((base64Image, index) => {
       const timestamp = settings.startTime + (index * (settings.intervalType === 'minutes' ? settings.interval * 60 : settings.interval));
       return {
         id: `backend-capture-${timestamp}-${Date.now()}`,
@@ -58,7 +70,7 @@ export async function processVideoWithBackend(
       };
     });
 
-    if (onProgress) [object Object]
+    if (onProgress) {
       onProgress(100); // Complete
     }
 
@@ -68,8 +80,3 @@ export async function processVideoWithBackend(
     throw error;
   }
 }
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds /60 const secs = Math.floor(seconds %60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-} 

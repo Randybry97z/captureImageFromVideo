@@ -14,8 +14,17 @@ Two deployment scripts are provided:
 
 ### For Linux/macOS/WSL:
 ```bash
+# If running from within WSL Ubuntu terminal:
 chmod +x deploy.sh
 ./deploy.sh
+
+# Or run with bash explicitly:
+bash deploy.sh
+
+# If running from Windows PowerShell/CMD:
+wsl bash deploy.sh
+# Or:
+wsl bash -c "cd /home/bssan/profitProjects/captureImageFromVideo && ./deploy.sh"
 ```
 
 ### For Windows PowerShell:
@@ -82,6 +91,16 @@ PORT=3000
 ```
 
 ## Troubleshooting
+
+### "Command not found" or "Permission denied" when running deploy.sh
+- **If in WSL Ubuntu**: Make sure you're in the correct directory and the script has execute permissions:
+  ```bash
+  cd /home/bssan/profitProjects/captureImageFromVideo
+  chmod +x deploy.sh
+  ./deploy.sh
+  ```
+- **If running from Windows**: Use `wsl bash deploy.sh` or run it from within WSL Ubuntu terminal
+- **Alternative**: Run with bash explicitly: `bash deploy.sh`
 
 ### Build fails
 - Check Node.js version (must be 18+)
