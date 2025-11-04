@@ -66,9 +66,55 @@ function validateInput(data: any): ProcessVideoRequest {
   return { url, interval, startTime, endTime, licenseKey };
 }
 
+// Helper function to find command in PATH or common installation locations
+function findCommand(command: string): string {
+  const { execSync } = require('child_process');
+  
+  // Check common installation paths
+  const commonPaths = [
+    path.join(os.homedir(), '.local/bin', command),
+    '/usr/local/bin/' + command,
+    '/usr/bin/' + command,
+    '/bin/' + command,
+  ];
+  
+  // Try to find in PATH first
+  try {
+    const whichPath = execSync(`which ${command}`, { encoding: 'utf8', stdio: 'pipe' }).trim();
+    if (whichPath) {
+      return whichPath;
+    }
+  } catch {
+    // Command not in PATH, continue to check common paths
+  }
+  
+  // Check common installation locations
+  for (const cmdPath of commonPaths) {
+    if (fs.existsSync(cmdPath)) {
+      return cmdPath;
+    }
+  }
+  
+  // Return original command (will fail with better error message)
+  return command;
+}
+
 function spawnWithTimeout(command: string, args: string[], timeoutMs: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, args);
+    // Find the actual command path (handles pipx and other installations)
+    const commandPath = findCommand(command);
+    
+    // Prepare environment with pipx/local bin path included
+    const env = {
+      ...process.env,
+      PATH: `${process.env.PATH || ''}:${os.homedir()}/.local/bin:/usr/local/bin:/usr/bin:/bin`,
+    };
+    
+    const process = spawn(commandPath, args, {
+      env,
+      shell: false,
+    });
+    
     const timeout = setTimeout(() => {
       process.kill('SIGTERM');
       reject(new Error(`${command} timed out after ${timeoutMs}ms`));
@@ -85,7 +131,10 @@ function spawnWithTimeout(command: string, args: string[], timeoutMs: number): P
     
     process.on('error', (error) => {
       clearTimeout(timeout);
-      reject(new Error(`${command} failed to start: ${error.message}`));
+      const errorMsg = error.message.includes('ENOENT') 
+        ? `${command} not found. Make sure it's installed and accessible. Checked: ${commandPath}`
+        : `${command} failed to start: ${error.message}`;
+      reject(new Error(errorMsg));
     });
   });
 }

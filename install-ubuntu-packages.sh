@@ -20,26 +20,68 @@ sudo apt-get install -y \
     pipx \
     git
 
-# Install yt-dlp using pipx (recommended for CLI tools in externally-managed environments)
-echo "📥 Installing yt-dlp using pipx (recommended method)..."
+# Install yt-dlp - try multiple methods
+echo "📥 Installing yt-dlp..."
+
+YTDLP_INSTALLED=false
+
+# Method 1: Try pipx (recommended for CLI tools in externally-managed environments)
 if command -v pipx &> /dev/null; then
-    # Use pipx to install yt-dlp (manages its own virtual environment)
-    pipx ensurepath
-    pipx install yt-dlp
-    echo "✓ yt-dlp installed via pipx"
-else
-    echo "⚠ pipx not available, trying alternative methods..."
+    echo "   Trying pipx installation..."
+    pipx ensurepath 2>/dev/null || true
     
-    # Alternative: Try to install yt-dlp via apt (if available)
-    if apt-cache show yt-dlp &> /dev/null; then
-        echo "📥 Installing yt-dlp via apt..."
-        sudo apt-get install -y yt-dlp
+    # Try to install with pipx
+    if pipx install yt-dlp 2>/dev/null; then
+        echo "✓ yt-dlp installed via pipx"
+        YTDLP_INSTALLED=true
+        
+        # Check if it's in the expected location
+        if [ -f "$HOME/.local/bin/yt-dlp" ]; then
+            echo "   Location: $HOME/.local/bin/yt-dlp"
+        fi
     else
-        # Last resort: Use pip with --break-system-packages (not recommended but may be necessary)
-        echo "⚠ Installing yt-dlp via pip with --break-system-packages flag..."
-        echo "   (This is not recommended but may be necessary for your system)"
-        sudo pip3 install --break-system-packages --no-cache-dir yt-dlp
+        echo "   ⚠ pipx installation failed, trying alternatives..."
     fi
+fi
+
+# Method 2: Try apt (if pipx didn't work or isn't available)
+if [ "$YTDLP_INSTALLED" = false ]; then
+    if apt-cache show yt-dlp &> /dev/null; then
+        echo "   Trying apt installation..."
+        if sudo apt-get install -y yt-dlp 2>/dev/null; then
+            echo "✓ yt-dlp installed via apt"
+            YTDLP_INSTALLED=true
+        fi
+    fi
+fi
+
+# Method 3: Try pip with --break-system-packages (last resort)
+if [ "$YTDLP_INSTALLED" = false ]; then
+    echo "   Trying pip installation (with --break-system-packages)..."
+    if sudo pip3 install --break-system-packages --no-cache-dir yt-dlp 2>/dev/null; then
+        echo "✓ yt-dlp installed via pip"
+        YTDLP_INSTALLED=true
+    fi
+fi
+
+# Method 4: Install pipx first if it's not available, then try again
+if [ "$YTDLP_INSTALLED" = false ] && ! command -v pipx &> /dev/null; then
+    echo "   Installing pipx first..."
+    if sudo apt-get install -y pipx 2>/dev/null; then
+        pipx ensurepath 2>/dev/null || true
+        if pipx install yt-dlp 2>/dev/null; then
+            echo "✓ yt-dlp installed via pipx (after installing pipx)"
+            YTDLP_INSTALLED=true
+        fi
+    fi
+fi
+
+if [ "$YTDLP_INSTALLED" = false ]; then
+    echo "❌ Failed to install yt-dlp using all methods"
+    echo "   Please install manually using one of the following:"
+    echo "   1. pipx install yt-dlp"
+    echo "   2. sudo apt-get install yt-dlp"
+    echo "   3. sudo pip3 install --break-system-packages yt-dlp"
 fi
 
 # Verify installations
@@ -71,12 +113,43 @@ else
     echo "✗ git: Not found"
 fi
 
+# Check for yt-dlp in multiple locations
+YTDLP_FOUND=false
+YTDLP_PATH=""
+
+# Check in PATH first
 if command -v yt-dlp &> /dev/null; then
-    YTDLP_VERSION=$(yt-dlp --version 2>/dev/null || echo "installed")
-    echo "✓ yt-dlp: $YTDLP_VERSION"
+    YTDLP_PATH=$(command -v yt-dlp)
+    YTDLP_FOUND=true
+elif [ -f "$HOME/.local/bin/yt-dlp" ]; then
+    # Check pipx installation path
+    YTDLP_PATH="$HOME/.local/bin/yt-dlp"
+    YTDLP_FOUND=true
+elif [ -f "/usr/local/bin/yt-dlp" ]; then
+    YTDLP_PATH="/usr/local/bin/yt-dlp"
+    YTDLP_FOUND=true
+elif [ -f "/usr/bin/yt-dlp" ]; then
+    YTDLP_PATH="/usr/bin/yt-dlp"
+    YTDLP_FOUND=true
+fi
+
+if [ "$YTDLP_FOUND" = true ]; then
+    YTDLP_VERSION=$($YTDLP_PATH --version 2>/dev/null || echo "installed")
+    echo "✓ yt-dlp: $YTDLP_VERSION (found at: $YTDLP_PATH)"
+    
+    # If it's in ~/.local/bin, add to PATH note
+    if [[ "$YTDLP_PATH" == *"/.local/bin/"* ]]; then
+        echo "   Note: Add to PATH: export PATH=\"\$HOME/.local/bin:\$PATH\""
+        echo "   Or add to ~/.bashrc: echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+    fi
 else
-    echo "✗ yt-dlp: Not found"
-    echo "   You may need to reload your shell or run: source ~/.bashrc"
+    echo "✗ yt-dlp: Not found in PATH or common locations"
+    echo ""
+    echo "   Troubleshooting steps for remote server:"
+    echo "   1. Reload your shell: source ~/.bashrc"
+    echo "   2. Or add to PATH: export PATH=\"\$HOME/.local/bin:\$PATH\""
+    echo "   3. Or install manually: sudo pip3 install --break-system-packages yt-dlp"
+    echo "   4. Verify installation: $HOME/.local/bin/yt-dlp --version"
 fi
 
 echo ""
